@@ -1,12 +1,12 @@
 /**
- * SQLite Database Connection
- * Simplified database without external dependencies
+ * SQLite Database Connection using sql.js
+ * Pure JavaScript implementation - no native bindings required!
  */
 
-import Database from 'better-sqlite3';
+import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,25 +22,27 @@ if (!existsSync(dataDir)) {
 }
 
 // Initialize database connection
-let db: Database.Database | null = null;
+let db: SqlJsDatabase | null = null;
+let SQL: any = null;
+
+/**
+ * Save database to disk
+ */
+function saveDatabase(): void {
+  if (db) {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    writeFileSync(dbPath, buffer);
+  }
+}
 
 /**
  * Get database connection (singleton)
  */
-export function getDB(): Database.Database {
+export function getDB(): SqlJsDatabase {
   if (!db) {
-    db = new Database(dbPath, { verbose: console.log });
-
-    // Enable foreign keys
-    db.pragma('foreign_keys = ON');
-
-    // Performance optimizations
-    db.pragma('journal_mode = WAL'); // Write-Ahead Logging for better concurrency
-    db.pragma('synchronous = NORMAL'); // Balance between safety and speed
-
-    console.log(`SQLite database connected at: ${dbPath}`);
+    throw new Error('Database not initialized. Call connectDB() first.');
   }
-
   return db;
 }
 
@@ -55,6 +57,9 @@ export function initDB(): void {
     const schema = readFileSync(schemaPath, 'utf8');
     database.exec(schema);
 
+    // Save after schema initialization
+    saveDatabase();
+
     console.log('Database schema initialized successfully');
   } catch (error) {
     console.error('Failed to initialize database schema:', error);
@@ -63,12 +68,36 @@ export function initDB(): void {
 }
 
 /**
- * Connect to database (for compatibility with old MongoDB code)
+ * Connect to database
  */
 export async function connectDB(): Promise<void> {
   try {
-    getDB();
-    initDB();
+    // Initialize sql.js
+    SQL = await initSqlJs({
+      // sql.js ships with wasm file included in npm package
+      locateFile: (file: string) => `https://sql.js.org/dist/${file}`
+    });
+
+    // Load existing database or create new one
+    if (existsSync(dbPath)) {
+      const buffer = readFileSync(dbPath);
+      db = new SQL.Database(buffer);
+      console.log(`SQLite database loaded from: ${dbPath}`);
+    } else {
+      db = new SQL.Database();
+      console.log('Created new SQLite database');
+
+      // Initialize schema for new database
+      initDB();
+    }
+
+    // Set up auto-save on changes (save every 5 seconds if changes made)
+    setInterval(() => {
+      if (db) {
+        saveDatabase();
+      }
+    }, 5000);
+
     console.log('Database connected and initialized');
   } catch (error) {
     console.error('Failed to connect to database:', error);
@@ -77,10 +106,69 @@ export async function connectDB(): Promise<void> {
 }
 
 /**
+ * Execute a query that returns no results (INSERT, UPDATE, DELETE, etc.)
+ */
+export function run(sql: string, params: any[] = []): void {
+  const database = getDB();
+  const stmt = database.prepare(sql);
+  stmt.bind(params);
+  stmt.step();
+  stmt.free();
+  saveDatabase(); // Save after modification
+}
+
+/**
+ * Execute a query and return a single row
+ */
+export function get(sql: string, params: any[] = []): any {
+  const database = getDB();
+  const stmt = database.prepare(sql);
+  stmt.bind(params);
+
+  let result = null;
+  if (stmt.step()) {
+    const columns = stmt.getColumnNames();
+    const values = stmt.get();
+    result = {};
+    columns.forEach((col, idx) => {
+      result[col] = values[idx];
+    });
+  }
+
+  stmt.free();
+  return result;
+}
+
+/**
+ * Execute a query and return all rows
+ */
+export function all(sql: string, params: any[] = []): any[] {
+  const database = getDB();
+  const stmt = database.prepare(sql);
+  stmt.bind(params);
+
+  const results: any[] = [];
+  const columns = stmt.getColumnNames();
+
+  while (stmt.step()) {
+    const values = stmt.get();
+    const row: any = {};
+    columns.forEach((col, idx) => {
+      row[col] = values[idx];
+    });
+    results.push(row);
+  }
+
+  stmt.free();
+  return results;
+}
+
+/**
  * Close database connection
  */
 export function closeDB(): void {
   if (db) {
+    saveDatabase(); // Final save before closing
     db.close();
     db = null;
     console.log('Database connection closed');
