@@ -9,14 +9,17 @@ WORKDIR /app
 # Copy package files (using npm instead of pnpm for better native module support)
 COPY package*.json ./
 
-# Install dependencies with npm (more reliable for native modules than pnpm)
-RUN npm ci --omit=dev --ignore-scripts=false
+# Install ALL dependencies (including devDependencies) for build step
+RUN npm ci --ignore-scripts=false
 
 # Copy source code
 COPY . .
 
-# Build application
+# Build application (needs devDependencies like vite, esbuild, etc.)
 RUN npm run build
+
+# Remove devDependencies to reduce image size
+RUN npm prune --production
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chmod 777 /app/data
