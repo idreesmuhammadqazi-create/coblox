@@ -8,9 +8,10 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and patches
 COPY package*.json ./
 COPY pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Install pnpm and dependencies
 RUN npm install -g pnpm@10.4.1
