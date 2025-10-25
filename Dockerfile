@@ -25,10 +25,13 @@ RUN pnpm run build
 # Production stage
 FROM node:18-alpine
 
-# Install runtime dependencies for better-sqlite3
-RUN apk add --no-cache sqlite
+# Install runtime dependencies for better-sqlite3 AND build tools to rebuild native modules
+RUN apk add --no-cache sqlite python3 make g++
 
 WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@10.4.1
 
 # Copy built application and dependencies
 COPY --from=builder /app/dist ./dist
@@ -36,6 +39,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/data ./data
 COPY --from=builder /app/client/world ./client/world
+
+# Rebuild native modules for the production environment
+RUN pnpm rebuild better-sqlite3
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chmod 777 /app/data
