@@ -10,7 +10,6 @@ WORKDIR /app
 
 # Copy package files and patches
 COPY package*.json ./
-COPY pnpm-lock.yaml ./
 COPY patches ./patches
 
 # Install pnpm and dependencies
