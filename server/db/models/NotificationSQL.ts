@@ -1,8 +1,8 @@
 /**
- * Notification Model (SQLite version)
+ * Notification Model (SQLite version with sql.js)
  */
 
-import getDB from '../sqlite.js';
+import { run, get, all } from '../sqlite.js';
 import { nanoid } from 'nanoid';
 
 export type NotificationType = 'friend_request' | 'world_invite' | 'system';
@@ -30,24 +30,21 @@ export interface NotificationInput {
  * Create a new notification
  */
 export function createNotification(input: NotificationInput): Notification {
-  const db = getDB();
-
   const id = nanoid();
   const now = Date.now();
 
-  const stmt = db.prepare(`
-    INSERT INTO notifications (id, user_id, type, title, message, read, data, created_at)
-    VALUES (?, ?, ?, ?, ?, 0, ?, ?)
-  `);
-
-  stmt.run(
-    id,
-    input.userId,
-    input.type,
-    input.title,
-    input.message,
-    input.data ? JSON.stringify(input.data) : null,
-    now
+  run(
+    `INSERT INTO notifications (id, user_id, type, title, message, read, data, created_at)
+     VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+    [
+      id,
+      input.userId,
+      input.type,
+      input.title,
+      input.message,
+      input.data ? JSON.stringify(input.data) : null,
+      now
+    ]
   );
 
   return getNotificationById(id)!;
@@ -57,16 +54,13 @@ export function createNotification(input: NotificationInput): Notification {
  * Get notification by ID
  */
 export function getNotificationById(id: string): Notification | null {
-  const db = getDB();
-
-  const stmt = db.prepare(`
-    SELECT id, user_id as userId, type, title, message,
-           read, data, created_at as createdAt
-    FROM notifications
-    WHERE id = ?
-  `);
-
-  const row: any = stmt.get(id);
+  const row: any = get(
+    `SELECT id, user_id as userId, type, title, message,
+            read, data, created_at as createdAt
+     FROM notifications
+     WHERE id = ?`,
+    [id]
+  );
 
   if (!row) return null;
 
@@ -81,18 +75,15 @@ export function getNotificationById(id: string): Notification | null {
  * Get all notifications for a user
  */
 export function getUserNotifications(userId: string, limit: number = 50): Notification[] {
-  const db = getDB();
-
-  const stmt = db.prepare(`
-    SELECT id, user_id as userId, type, title, message,
-           read, data, created_at as createdAt
-    FROM notifications
-    WHERE user_id = ?
-    ORDER BY created_at DESC
-    LIMIT ?
-  `);
-
-  const rows: any[] = stmt.all(userId, limit);
+  const rows: any[] = all(
+    `SELECT id, user_id as userId, type, title, message,
+            read, data, created_at as createdAt
+     FROM notifications
+     WHERE user_id = ?
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [userId, limit]
+  );
 
   return rows.map(row => ({
     ...row,
@@ -105,17 +96,14 @@ export function getUserNotifications(userId: string, limit: number = 50): Notifi
  * Get unread notifications for a user
  */
 export function getUnreadNotifications(userId: string): Notification[] {
-  const db = getDB();
-
-  const stmt = db.prepare(`
-    SELECT id, user_id as userId, type, title, message,
-           read, data, created_at as createdAt
-    FROM notifications
-    WHERE user_id = ? AND read = 0
-    ORDER BY created_at DESC
-  `);
-
-  const rows: any[] = stmt.all(userId);
+  const rows: any[] = all(
+    `SELECT id, user_id as userId, type, title, message,
+            read, data, created_at as createdAt
+     FROM notifications
+     WHERE user_id = ? AND read = 0
+     ORDER BY created_at DESC`,
+    [userId]
+  );
 
   return rows.map(row => ({
     ...row,
@@ -128,70 +116,63 @@ export function getUnreadNotifications(userId: string): Notification[] {
  * Mark notification as read
  */
 export function markNotificationAsRead(id: string): boolean {
-  const db = getDB();
-
-  const stmt = db.prepare(`
-    UPDATE notifications
-    SET read = 1
-    WHERE id = ?
-  `);
-
-  const result = stmt.run(id);
-  return result.changes > 0;
+  try {
+    run(`UPDATE notifications SET read = 1 WHERE id = ?`, [id]);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
  * Mark all notifications as read for a user
  */
 export function markAllNotificationsAsRead(userId: string): number {
-  const db = getDB();
-
-  const stmt = db.prepare(`
-    UPDATE notifications
-    SET read = 1
-    WHERE user_id = ? AND read = 0
-  `);
-
-  const result = stmt.run(userId);
-  return result.changes;
+  try {
+    // Get count before update
+    const count = getNotificationCount(userId, true);
+    run(`UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0`, [userId]);
+    return count;
+  } catch (error) {
+    return 0;
+  }
 }
 
 /**
  * Delete notification
  */
 export function deleteNotification(id: string): boolean {
-  const db = getDB();
-
-  const stmt = db.prepare('DELETE FROM notifications WHERE id = ?');
-  const result = stmt.run(id);
-
-  return result.changes > 0;
+  try {
+    run('DELETE FROM notifications WHERE id = ?', [id]);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
  * Delete all notifications for a user
  */
 export function deleteUserNotifications(userId: string): number {
-  const db = getDB();
-
-  const stmt = db.prepare('DELETE FROM notifications WHERE user_id = ?');
-  const result = stmt.run(userId);
-
-  return result.changes;
+  try {
+    // Get count before deletion
+    const count = getNotificationCount(userId);
+    run('DELETE FROM notifications WHERE user_id = ?', [userId]);
+    return count;
+  } catch (error) {
+    return 0;
+  }
 }
 
 /**
  * Get notification count for a user
  */
 export function getNotificationCount(userId: string, unreadOnly: boolean = false): number {
-  const db = getDB();
-
   const query = unreadOnly
     ? 'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0'
     : 'SELECT COUNT(*) as count FROM notifications WHERE user_id = ?';
 
-  const stmt = db.prepare(query);
-  const row: any = stmt.get(userId);
+  const row: any = get(query, [userId]);
 
   return row?.count || 0;
 }
