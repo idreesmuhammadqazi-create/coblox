@@ -1,7 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { verifyToken } from '../utils/jwt.js';
-import { User } from '../db/models/User.js';
+import * as UserModel from '../db/models/UserSQL.js';
 
 interface PlayerData {
   id: string;
@@ -40,7 +40,7 @@ export function initializeMultiplayer(httpServer: HTTPServer) {
       socket.data.userId = decoded.userId;
 
       // Fetch user from database to get characterName
-      const user = await User.findById(decoded.userId).select('characterName');
+      const user = UserModel.getUserById(decoded.userId);
       if (user && user.characterName) {
         socket.data.username = user.characterName;
       } else {
