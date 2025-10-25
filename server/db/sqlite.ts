@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 
 // Database file path
 const dbPath = process.env.DB_PATH || join(__dirname, '../../data/blockverse.db');
-const schemaPath = join(__dirname, '../../data/schema.sql');
+const schemaPath = '/app/data/schema.sql'; // Use absolute path in Docker
 
 // Ensure data directory exists
 const dataDir = dirname(dbPath);
