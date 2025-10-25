@@ -1,47 +1,26 @@
-# BlockVerse Dockerfile
-# Simplified deployment for any platform supporting Docker
-
-FROM node:18-alpine AS builder
-
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
-
-WORKDIR /app
-
-# Copy package files and patches
-COPY package*.json ./
-COPY patches ./patches
-
-# Install pnpm and dependencies
-RUN npm install -g pnpm@10.4.1
-RUN pnpm install --no-frozen-lockfile
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN pnpm run build
-
-# Production stage
+# BlockVerse Dockerfile - Single stage for reliable native module builds
 FROM node:18-alpine
 
-# Install runtime dependencies for better-sqlite3 AND build tools to rebuild native modules
-RUN apk add --no-cache sqlite python3 make g++
+# Install all dependencies including build tools for better-sqlite3
+RUN apk add --no-cache python3 make g++ sqlite
 
 WORKDIR /app
 
 # Install pnpm
 RUN npm install -g pnpm@10.4.1
 
-# Copy built application and dependencies
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/data ./data
-COPY --from=builder /app/client/world ./client/world
+# Copy package files and patches
+COPY package*.json ./
+COPY patches ./patches
 
-# Rebuild native modules for the production environment
-RUN pnpm rebuild better-sqlite3
+# Install dependencies (will compile better-sqlite3 for this environment)
+RUN pnpm install --no-frozen-lockfile --prod=false
+
+# Copy source code
+COPY . .
+
+# Build application
+RUN pnpm run build
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chmod 777 /app/data
