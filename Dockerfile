@@ -1,21 +1,19 @@
-# BlockVerse Dockerfile - Using npm for reliable native module builds
+# BlockVerse Dockerfile - Using sql.js (pure JavaScript, no native builds!)
 FROM node:18-alpine
-
-# Install all dependencies including build tools for better-sqlite3
-RUN apk add --no-cache python3 make g++ sqlite
 
 WORKDIR /app
 
-# Copy package files (using npm instead of pnpm for better native module support)
+# Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (including devDependencies) for build step
-RUN npm ci --ignore-scripts=false --legacy-peer-deps
+# Install ALL dependencies (including devDependencies for build)
+# No build tools needed - sql.js is pure JavaScript!
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
 
-# Build application (needs devDependencies like vite, esbuild, etc.)
+# Build application
 RUN npm run build
 
 # Remove devDependencies to reduce image size
