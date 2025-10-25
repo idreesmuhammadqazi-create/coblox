@@ -75,10 +75,8 @@ export async function connectDB(): Promise<void> {
     // Initialize sql.js - use local WASM file from node_modules
     SQL = await initSqlJs({
       // Point to local WASM file included in sql.js package
-      locateFile: (file: string) => {
-        // In Node.js, use the WASM file from node_modules
-        return join(__dirname, '../../node_modules/sql.js/dist', file);
-      }
+      // Use absolute path since we're running in Docker at /app
+      locateFile: (file: string) => `/app/node_modules/sql.js/dist/${file}`
     });
 
     // Load existing database or create new one
