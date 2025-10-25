@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ALL dependencies (including devDependencies) for build step
-RUN npm ci --ignore-scripts=false
+RUN npm ci --ignore-scripts=false --legacy-peer-deps
 
 # Copy source code
 COPY . .
