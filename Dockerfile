@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Remove devDependencies to reduce image size
-RUN npm prune --production
+RUN npm prune --production --legacy-peer-deps
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chmod 777 /app/data
