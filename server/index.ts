@@ -2,11 +2,11 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
-import { connectDB } from "./db/index.js";
-import authRoutes from "./routes/auth.js";
-import characterRoutes from "./routes/character.js";
-import notificationRoutes from "./routes/notification.js";
-import friendsRoutes from "./routes/friends.js";
+import { connectDB } from "./db/sqlite.js";
+import authRoutes from "./routes/authSQL.js";
+import characterRoutes from "./routes/characterSQL.js";
+import notificationRoutes from "./routes/notificationSQL.js";
+import friendsRoutes from "./routes/friendsSQL.js";
 import { initializeMultiplayer } from "./services/multiplayer.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,7 +16,7 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Connect to MongoDB
+  // Connect to SQLite database
   await connectDB();
 
   // Initialize multiplayer service with Socket.io
