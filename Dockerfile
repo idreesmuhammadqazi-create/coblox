@@ -1,4 +1,4 @@
-# BlockVerse Dockerfile - Single stage for reliable native module builds
+# BlockVerse Dockerfile - Using npm for reliable native module builds
 FROM node:18-alpine
 
 # Install all dependencies including build tools for better-sqlite3
@@ -6,21 +6,17 @@ RUN apk add --no-cache python3 make g++ sqlite
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@10.4.1
-
-# Copy package files and patches
+# Copy package files (using npm instead of pnpm for better native module support)
 COPY package*.json ./
-COPY patches ./patches
 
-# Install dependencies (will compile better-sqlite3 for this environment)
-RUN pnpm install --no-frozen-lockfile --prod=false
+# Install dependencies with npm (more reliable for native modules than pnpm)
+RUN npm ci --omit=dev --ignore-scripts=false
 
 # Copy source code
 COPY . .
 
 # Build application
-RUN pnpm run build
+RUN npm run build
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chmod 777 /app/data
