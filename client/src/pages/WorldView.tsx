@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import SurvivalIsland from "./worlds/SurvivalIsland";
 import NeonCity from "./worlds/NeonCity";
+import ProceduralWorld from "./worlds/ProceduralWorld";
 
 export default function WorldView() {
   const [, setLocation] = useLocation();
@@ -27,6 +28,11 @@ export default function WorldView() {
   // Render Neon City if worldId matches
   if (worldId === "neon-city") {
     return <NeonCity />;
+  }
+
+  // Render Procedural World for infinite generation
+  if (worldId === "procedural" || worldId === "infinite") {
+    return <ProceduralWorld />;
   }
 
   // Default placeholder for other worlds
