@@ -72,10 +72,13 @@ export function initDB(): void {
  */
 export async function connectDB(): Promise<void> {
   try {
-    // Initialize sql.js
+    // Initialize sql.js - use local WASM file from node_modules
     SQL = await initSqlJs({
-      // sql.js ships with wasm file included in npm package
-      locateFile: (file: string) => `https://sql.js.org/dist/${file}`
+      // Point to local WASM file included in sql.js package
+      locateFile: (file: string) => {
+        // In Node.js, use the WASM file from node_modules
+        return join(__dirname, '../../node_modules/sql.js/dist', file);
+      }
     });
 
     // Load existing database or create new one
