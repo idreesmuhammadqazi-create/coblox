@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+npm-debug.log
+pnpm-debug.log
+
+# Build output (will be generated during build)
+dist
+
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+!README.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+.nyc_output
+
+# Deployment guides (not needed in container)
+DEPLOYMENT*.md
+REFACTORING*.md
+
+# Old MongoDB files (not needed anymore)
+server/db/models/User.ts
+server/db/models/Notification.ts
+server/routes/auth.ts
+server/routes/character.ts
+server/routes/notification.ts
+server/routes/friends.ts
