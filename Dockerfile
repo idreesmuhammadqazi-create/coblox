@@ -15,7 +15,7 @@ COPY patches ./patches
 
 # Install pnpm and dependencies
 RUN npm install -g pnpm@10.4.1
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Copy source code
 COPY . .
