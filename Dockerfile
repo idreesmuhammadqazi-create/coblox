@@ -8,7 +8,7 @@ COPY package*.json ./
 
 # Install ALL dependencies (including devDependencies for build)
 # No build tools needed - sql.js is pure JavaScript!
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
