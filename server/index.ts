@@ -7,6 +7,7 @@ import authRoutes from "./routes/authSQL.js";
 import characterRoutes from "./routes/characterSQL.js";
 import notificationRoutes from "./routes/notificationSQL.js";
 import friendsRoutes from "./routes/friendsSQL.js";
+import worldGenRoutes from "./routes/worldGenSQL.js";
 import { initializeMultiplayer } from "./services/multiplayer.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,6 +31,7 @@ async function startServer() {
   app.use('/api', characterRoutes);
   app.use('/api', notificationRoutes);
   app.use('/api', friendsRoutes);
+  app.use('/api', worldGenRoutes);
 
   // Serve static files from dist/public in production
   const staticPath =
